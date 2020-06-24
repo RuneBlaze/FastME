@@ -868,7 +868,7 @@ void printMatrixStr (double **D, int size, set *nodes, char *str, int input_type
 			if (d > threshold)
 			{
 				//snprintf (tmp, INPUT_SIZE, "NA          ");
-				snprintf (tmp, 2, "NA");
+				snprintf (tmp, 3, "NA");
 				// Add [precision - 2] blank spaces
 				for (i=0; i<precision-2; i++)
 					strncat (tmp, " ", 1);
@@ -1255,6 +1255,17 @@ tree *ImproveTree (Options *options, tree *T0, double **D, double **A,
 	
 	T1 = T2 = T3 = NULL;
 
+	char format[8];
+	snprintf (format, 8, "%%.%df", options->precision);
+	
+	// Print tree length
+	weighTree (T0);
+	if (verbose > 2)
+		printf ("\n");
+	Message ( (char*)"Tree length is %f.", T0->weight);
+	fprintf (options->fpO_stat_file, "\tTree length is ");
+	fprintf (options->fpO_stat_file, format, T0->weight);
+
 	if (!options->use_NNI && !options->use_SPR)
 	{
 		switch (options->branch)
@@ -1338,28 +1349,36 @@ tree *ImproveTree (Options *options, tree *T0, double **D, double **A,
 			fprintf (ofile, "\tPerformed %d SPR(s).\n\n", *sprCount);
 	}
 	
-	weighTree (T0);
-	
 	if (NULL != T1)
 		weighTree (T1);
 
 	if (NULL != T2)
 		weighTree (T2);
 
-	if ((NULL != T1) && (T0->weight > T1->weight))
+	if (NULL != T1)
 	{
-		freeTree (T0);
-		T0 = T1;	//using T0 as the place to store the minimum evolution tree in all cases
-		T1 = NULL;
+		if (T0->weight > T1->weight)
+		{
+			freeTree (T0);
+			T0 = T1;	//using T0 as the place to store the minimum evolution tree in all cases
+			T1 = NULL;
+		}
+		else
+			Message ( (char*)"NNI did not improve tree length.");
 	}
 	else if (NULL != T1)
 		freeTree (T1);
 
-	if ((NULL != T2) && (T0->weight > T2->weight))
+	if (NULL != T2)
 	{
-		freeTree (T0);
-		T0 = T2;
-		T2 = NULL;
+		if (T0->weight > T2->weight)
+		{
+			freeTree (T0);
+			T0 = T2;
+			T2 = NULL;
+		}
+		else
+			Message ( (char*)"SPR did not improve tree length.");
 	}
 	else if (NULL != T2)
 		freeTree (T2);
